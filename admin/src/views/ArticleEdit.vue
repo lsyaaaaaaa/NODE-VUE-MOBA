@@ -1,18 +1,26 @@
 <template>
-  <div class="about">
-    <h1>{{id ? '编辑' : '新建'}}文章</h1>
+  <div class="categoryEdit">
+    <h1>{{ id ? "编辑" : "新建" }}文章</h1>
     <el-form label-width="120px" @submit.native.prevent="save">
       <el-form-item label="所属分类">
         <el-select v-model="model.categories" multiple>
-          <el-option v-for="item in categories" :key="item._id"
-          :label="item.name" :value="item._id"></el-option>
+          <el-option
+            v-for="item in categories"
+            :key="item._id"
+            :label="item.name"
+            :value="item._id"
+          ></el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="标题">
         <el-input v-model="model.title"></el-input>
       </el-form-item>
-      <el-form-item label="详情">
-        <el-input v-model="model.body"></el-input>
+      <el-form-item label="内容">
+        <vue-editor
+          v-model="model.body"
+          useCustomImageHandler
+          @image-added="handleImageAdded"
+        ></vue-editor>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" native-type="submit">保存</el-button>
@@ -21,46 +29,65 @@
   </div>
 </template>
 
-
 <script>
+import { VueEditor } from "vue2-editor";
 export default {
-  props: {
-    id: {}
+  name: "CategoryEdit",
+  components: {
+    VueEditor,
   },
-  data(){
+  data() {
     return {
       model: {},
       categories: [],
-    }
+    };
+  },
+  props: {
+    id: {
+      type: String,
+    },
   },
   methods: {
-    async save(){
-      let res // eslint-disable-line no-unused-vars
-      
+    //文件上传器
+    async handleImageAdded(file, Editor, cursorLocation, resetUploader) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await this.$http.post("upload", formData);
+      Editor.insertEmbed(cursorLocation, "image", res.data.url);
+      resetUploader();
+    },
+    // 保存新建分类
+    async save() {
+      let res;// eslint-disable-line no-unused-vars
       if (this.id) {
-        res = await this.$http.put(`rest/articles/${this.id}`, this.model)
+        await this.$http.put(
+          `rest/articles/${this.id}`,
+          this.model
+        );
       } else {
-        res = await this.$http.post('rest/articles', this.model)
+        await this.$http.post("rest/articles", this.model);
       }
-      this.$router.push('/articles/list')
+      this.$router.push("/articles/list");
       this.$message({
-        type: 'success',
-        message: '保存成功'
-      })
+        type: "success",
+        message: "保存成功",
+      });
     },
-    //编辑分类名称显示
-    async fetch(){
-      const res = await this.$http.get(`rest/articles/${this.id}`)
-      this.model = res.data
+    // 获取需要编辑的分类数据
+    async fetch() {
+      const res = await this.$http.get(`rest/articles/${this.id}`);
+      this.model = res.data;
     },
-    async fetchCategories(){
-      const res = await this.$http.get(`rest/categories`)
-      this.categories = res.data
+    // 获取上级分类数据
+    async fetchCategories() {
+      const res = await this.$http.get(`rest/categories`);
+      this.categories = res.data;
     },
   },
-  created(){
-    this.fetchCategories()
-    this.id && this.fetch()
-  }
-}
+  created() {
+    this.fetchCategories();
+    this.id && this.fetch();
+  },
+};
 </script>
+
