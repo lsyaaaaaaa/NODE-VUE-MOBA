@@ -25,7 +25,7 @@ module.exports = app => {
   //分类列表关联字段 特殊操作
   router.get('/', async (req, res) => {
     const queryOptions = {}
-    if(req.Model.modelName === 'Category') {
+    if (req.Model.modelName === 'Category') {
       queryOptions.populate = 'parent'
     }
     const items = await req.Model.find().setOptions(queryOptions).limit(10)
@@ -41,13 +41,27 @@ module.exports = app => {
     const modelName = require('inflection').classify(req.params.resource)
     req.Model = require(`../../models/${modelName}`)
     next()
-  } , router)
+  }, router)
 
   const multer = require('multer')
-  const upload = multer({dest: __dirname +'/../../uploads'})
+  const upload = multer({ dest: __dirname + '/../../uploads' })
   app.post('/admin/api/upload', upload.single('file'), async (req, res) => {
-   const file = req.file
-   file.url = `http://localhost:3000/uploads/${file.filename}`
-   res.send(file)
+    const file = req.file
+    file.url = `http://localhost:3000/uploads/${file.filename}`
+    res.send(file)
+  })
+
+  app.post('/admin/api/login', async (req, res) => {
+    const {username, password} = req.body
+    //1.根据用户名找用户
+    const AdminUser = require('../../models/AdminUser')
+    const user = await AdminUser.findOne({username})
+    if(!user){
+      return res.status(422).send({
+        message: '用户不存在'
+      })
+    }
+    //2.校验密码
+    //3.返回token
   })
 }
